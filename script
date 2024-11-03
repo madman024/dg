@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Function to check if whiptail is installed
+check_whiptail() {
+    if ! command -v whiptail >/dev/null 2>&1; then
+        echo "This script requires whiptail to run."
+        echo "On Debian/Ubuntu systems, you can install it with:"
+        echo "sudo apt-get install whiptail"
+        echo "On Red Hat/Fedora systems, use:"
+        echo "sudo dnf install newt"
+        exit 1
+    fi
+}
+
+# Function to create menu and handle selection
+show_menu() {
+    # Get terminal size
+    TERM_LINES=$(tput lines)
+    TERM_COLS=$(tput cols)
+    
+    # Calculate menu size (adjust as needed)
+    MENU_HEIGHT=10
+    MENU_WIDTH=40
+    
+    # Ensure menu fits in terminal
+    if [ $TERM_LINES -lt $MENU_HEIGHT ] || [ $TERM_COLS -lt $MENU_WIDTH ]; then
+        echo "Terminal window too small. Please resize and try again."
+        exit 1
+    fi
+    
+    # Create the menu
+    OPTION=$(whiptail --title "Interactive Menu" \
+                      --menu "Please select an option:" \
+                      $MENU_HEIGHT $MENU_WIDTH 4 \
+                      "1" "First Option" \
+                      "2" "Second Option" \
+                      "3" "Third Option" \
+                      "4" "Fourth Option" \
+                      3>&1 1>&2 2>&3)
+    
+    # Handle the exit status
+    EXIT_STATUS=$?
+    if [ $EXIT_STATUS -eq 0 ]; then
+        case $OPTION in
+            1)
+                echo "You selected: First Option"
+                ;;
+            2)
+                echo "You selected: Second Option"
+                ;;
+            3)
+                echo "You selected: Third Option"
+                ;;
+            4)
+                echo "You selected: Fourth Option"
+                ;;
+        esac
+    elif [ $EXIT_STATUS -eq 1 ]; then
+        echo "Cancelled by user"
+    else
+        echo "An error occurred"
+    fi
+}
+
+# Main script execution
+main() {
+    # Check for whiptail
+    check_whiptail
+    
+    # Show the menu
+    show_menu
+}
+
+# Run the script
+main

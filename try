@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# Function to check if dialog is installed
+check_dialog() {
+    if ! command -v dialog >/dev/null 2>&1; then
+        echo "This script requires dialog to run."
+        echo "On Debian/Ubuntu systems, you can install it with:"
+        echo "sudo apt-get install dialog"
+        echo "On Red Hat/Fedora systems, use:"
+        echo "sudo dnf install dialog"
+        exit 1
+    fi
+}
+
+# Function to create and display menu
+show_nano_config_menu() {
+    # Configure dialog appearance
+    export DIALOGOPTS="--no-shadow"
+    export DIALOG_CANCEL=1
+    export DIALOG_ESC=255
+    
+    # Create temporary file for dialog output
+    tempfile=$(mktemp)
+    trap 'rm -f $tempfile' EXIT
+    
+    # Display menu with dialog
+    dialog \
+        --clear \
+        --no-tags \
+        --backtitle "Nano Configuration Viewer" \
+        --menu "\nSelect an option to view or edit nano configurations:\n " \
+        15 60 6 \
+        "1" "  View System-wide Configuration (/etc/nanorc)" \
+        "2" "  View/Edit Personal Configuration (~/.nanorc)" \
+        "3" "  Show Current Nano Default Settings" \
+        "4" "  List All Nano Config Files" \
+        "5" "  Create New Personal Config" \
+        "6" "  Exit" \
+        2> $tempfile
+
+    # Get menu selection
+    selection=$(cat $tempfile)
+    case $selection in
+        1)
+            clear
+            echo "Displaying system-wide nano configuration:"
+            echo "----------------------------------------"
+            cat /etc/nanorc | less
+            ;;
+        2)
+            if [ -f ~/.nanorc ]; then
+                nano ~/.nanorc
+            else
+                clear
+                echo "Personal config file doesn't exist. Would you like to create it? (y/n)"
+                read -r answer
+                if [ "$answer" = "y" ]; then
+                    touch ~/.nanorc
+                    nano ~/.nanorc
+                fi
+            fi
+            ;;
+        3)
+            clear
+            echo "Showing nano default settings:"
+            echo "-----------------------------"
+            nano --show-defaults | less
+            ;;
+        4)
+            clear
+            echo "Finding all nano configuration files:"
+            echo "-----------------------------------"
+            find /etc -name "*nano*" 2>/dev/null
+            echo -e "\nPress Enter to continue..."
+            read -r
+            ;;
+        5)
+            clear
+            if [ -f ~/.nanorc ]; then
+                echo "~/.nanorc already exists. Opening for editing..."
+                sleep 2
+                nano ~/.nanorc
+            else
+                echo "Creating new ~/.nanorc with basic settings..."
+                cat > ~/.nanorc << EOF
+# Show line numbers
+set linenumbers
+
+# Enable mouse support
+set mouse
+
+# Enable auto-indentation
+set autoindent
+
+# Enable smooth scrolling
+set smooth
+
+# Include syntax highlighting
+include "/usr/share/nano/*.nanorc"
+EOF
+                echo "Created ~/.nanorc with basic settings. Opening for editing..."
+                sleep 2
+                nano ~/.nanorc
+            fi
+            ;;
+        6|"")
+            clear
+            exit 0
+            ;;
+    esac
+}
+
+# Main script execution
+main() {
+    # Check for dialog
+    check_dialog
+    
+    # Keep showing menu until user exits
+    while true; do
+        show_nano_config_menu
+    done
+}
+
+# Run the script
+main
